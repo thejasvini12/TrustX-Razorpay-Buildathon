@@ -1,0 +1,87 @@
+{
+  "model_type": "RandomForestClassifier",
+  "task": "Return & Refund Abuse Risk Detection",
+  "target_column": "return_abuse_label",
+  "features": [
+    "order_count",
+    "return_count",
+    "refund_count",
+    "total_spend",
+    "average_order_value",
+    "account_age_days",
+    "device_count",
+    "ip_count",
+    "payment_instrument_count",
+    "return_rate",
+    "refund_rate",
+    "high_value_order_count",
+    "suspicious_activity_score",
+    "device_type",
+    "primary_payment_method"
+  ],
+  "dataset_summary": {
+    "total_samples": 5000,
+    "train_samples": 4000,
+    "test_samples": 1000,
+    "train_positive_samples": 210,
+    "test_positive_samples": 52,
+    "train_prevalence": 0.0525,
+    "test_prevalence": 0.052
+  },
+  "test_metrics": {
+    "precision": 1.0,
+    "recall": 0.9808,
+    "f1_score": 0.9903,
+    "roc_auc": 1.0,
+    "false_positive_rate": 0.0,
+    "false_negative_rate": 0.0192,
+    "confusion_matrix": {
+      "true_negatives": 948,
+      "false_positives": 0,
+      "false_negatives": 1,
+      "true_positives": 51
+    }
+  },
+  "top_features": [
+    {
+      "feature": "return_rate",
+      "importance": 0.1805
+    },
+    {
+      "feature": "suspicious_activity_score",
+      "importance": 0.1725
+    },
+    {
+      "feature": "refund_rate",
+      "importance": 0.1357
+    },
+    {
+      "feature": "refund_count",
+      "importance": 0.1177
+    },
+    {
+      "feature": "high_value_order_count",
+      "importance": 0.1092
+    },
+    {
+      "feature": "total_spend",
+      "importance": 0.0651
+    },
+    {
+      "feature": "return_count",
+      "importance": 0.0637
+    },
+    {
+      "feature": "average_order_value",
+      "importance": 0.0431
+    },
+    {
+      "feature": "account_age_days",
+      "importance": 0.0333
+    },
+    {
+      "feature": "order_count",
+      "importance": 0.0251
+    }
+  ]
+}

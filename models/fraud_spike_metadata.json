@@ -1,0 +1,80 @@
+{
+  "model_type": "RandomForestClassifier",
+  "task": "Temporal Fraud-Spike Detection",
+  "target_column": "fraud_spike_label",
+  "features": [
+    "baseline_tx_count",
+    "current_tx_count",
+    "baseline_fraud_count",
+    "current_fraud_count",
+    "baseline_fraud_rate",
+    "current_fraud_rate",
+    "fraud_rate_delta",
+    "fraud_rate_ratio",
+    "volume_surge_ratio",
+    "baseline_device_count",
+    "current_device_count",
+    "device_concentration_ratio",
+    "baseline_suspicious_score",
+    "current_suspicious_score",
+    "suspicious_score_delta"
+  ],
+  "dataset_summary": {
+    "train_samples": 2800,
+    "val_samples": 600,
+    "test_samples": 600,
+    "test_positive_samples": 120,
+    "test_prevalence": 0.2
+  },
+  "validation_metrics": {
+    "val_roc_auc": 1.0
+  },
+  "test_metrics": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1_score": 1.0,
+    "roc_auc": 1.0,
+    "false_positive_rate": 0.0,
+    "false_negative_rate": 0.0,
+    "confusion_matrix": {
+      "true_negatives": 480,
+      "false_positives": 0,
+      "false_negatives": 0,
+      "true_positives": 120
+    }
+  },
+  "top_features": [
+    {
+      "feature": "current_suspicious_score",
+      "importance": 0.2281
+    },
+    {
+      "feature": "suspicious_score_delta",
+      "importance": 0.1887
+    },
+    {
+      "feature": "device_concentration_ratio",
+      "importance": 0.1878
+    },
+    {
+      "feature": "fraud_rate_ratio",
+      "importance": 0.1241
+    },
+    {
+      "feature": "fraud_rate_delta",
+      "importance": 0.0825
+    },
+    {
+      "feature": "current_fraud_count",
+      "importance": 0.0648
+    },
+    {
+      "feature": "volume_surge_ratio",
+      "importance": 0.0529
+    },
+    {
+      "feature": "current_fraud_rate",
+      "importance": 0.0389
+    }
+  ]
+}
