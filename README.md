@@ -1,20 +1,46 @@
-# TrustX
+<div align="center">
 
-AI-powered transaction risk intelligence platform for detecting payment fraud, merchant abuse, anomalous velocity surges, and coordinated multi-account risk.
+# 🛡️ TrustX
+
+### AI-Powered Transaction Risk Intelligence Platform
+
+**Detect fraud. Uncover abuse. Understand risk. Act in real time.**
+
+Track 02 — AI Risk Manager · Razorpay Buildathon 2026
+
+<br>
+
+[![Live Dashboard](https://img.shields.io/badge/🚀%20LIVE%20DASHBOARD-Open%20TrustX-ff4b4b?style=for-the-badge)](https://trustx-frontend.onrender.com/)
+[![Live API](https://img.shields.io/badge/⚡%20LIVE%20API-Open%20FastAPI-00a896?style=for-the-badge)](https://trustx-backend.onrender.com/)
+
+</div>
 
 ---
 
-## 1. Introduction
+<div align="center">
 
-TrustX is an operational risk intelligence platform designed to analyze payment and transaction events in real time. Modern digital commerce faces diverse threats ranging from individual card testing and serial refund abuse to sophisticated, multi-account fraud syndicates and sudden velocity spikes.
+| 🖥️ **Live TrustX Dashboard** | ⚡ **Live TrustX API** |
+|:---:|:---:|
+| Real-time risk monitoring and investigation | FastAPI backend powering TrustX |
+| Risk Engine · Fraud Spikes · Abuse Rings | Risk Scoring · Webhooks · Live Telemetry |
+| **[Open Dashboard →](https://trustx-frontend.onrender.com/)** | **[Open API →](https://trustx-backend.onrender.com/)** |
 
-Detecting these threats requires analyzing transaction and behavioral signals across multiple operational dimensions:
-- Account-level behavioral characteristics (order frequency, return rates, refund ratios, spend history, account age).
-- Entity interaction patterns (shared hardware device IDs, connection IP addresses, payment instruments, physical shipping and billing addresses).
-- Temporal transaction volume and velocity (rolling 5-minute micro-bursts and 1-hour observation windows evaluated against 24-hour merchant baselines).
-- Post-purchase dispute and fulfillment behaviors (serial wardrobing and unreturned goods claims).
+</div>
 
-TrustX addresses these challenges by combining calibrated machine learning models with deterministic policy guardrails and graph-aware clustering. The platform assesses risk across payment lifecycles, assigns calibrated risk scores and qualitative severity tiers, generates plain-language explanations, and recommends targeted operational actions before financial loss or merchant liability occurs.
+---
+
+## 🛡️ What is TrustX?
+
+TrustX is an AI-powered transaction risk intelligence platform built to help
+merchants detect suspicious payment activity and coordinated abuse in real time.
+
+It combines **machine learning, behavioral analysis, temporal signals, and entity
+relationships** to identify risks that traditional transaction-by-transaction
+fraud detection can miss.
+
+TrustX brings multiple risk signals together into one operational platform,
+helping teams move from **“something looks suspicious”** to **“here's why it's
+risky and what we should do next.”**
 
 ---
 
