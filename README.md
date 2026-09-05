@@ -28,200 +28,215 @@ Track 02 — AI Risk Manager · Razorpay Buildathon 2026
 </div>
 
 ---
+## Overview
 
-## 🛡️ What is TrustX?
+TrustX is an AI-powered transaction risk intelligence platform designed to
+detect and investigate suspicious payment and merchant-abuse activity in real
+time.
 
-TrustX is an AI-powered transaction risk intelligence platform built to help
-merchants detect suspicious payment activity and coordinated abuse in real time.
+Unlike systems that evaluate transactions individually, TrustX combines
+account behavior, transaction history, payment activity, temporal velocity,
+device and IP relationships, payment instruments, addresses, and return/refund
+patterns to build a broader view of risk.
 
-It combines **machine learning, behavioral analysis, temporal signals, and entity
-relationships** to identify risks that traditional transaction-by-transaction
-fraud detection can miss.
+### Features
 
-TrustX brings multiple risk signals together into one operational platform,
-helping teams move from **“something looks suspicious”** to **“here's why it's
-risky and what we should do next.”**
+| Model | Purpose | What It Detects | Output |
+|---|---|---|---|
+| **Risk Engine** | Account-level risk assessment and transaction decisioning | Suspicious account behavior, abnormal spending, return/refund patterns, account and device activity | Risk score (0–100), risk tier, and decision such as `ALLOW`, `MANUAL_REVIEW`, or `CHALLENGE_OR_BLOCK` |
+| **Fraud Spike Detector** | Real-time temporal fraud and velocity monitoring | Sudden transaction surges, abnormal fraud-rate changes, short-term payment bursts, and automated activity | Spike probability, anomaly score, spike flag, persistence status, and traffic classification |
+| **Return Risk Scorer** | Post-purchase return and refund risk assessment | Excessive returns, repeated refund claims, high-value return patterns, and suspicious return behavior | Return risk score (0–100), risk tier, and fulfillment action |
+| **Abuse Ring Sentinel** | Coordinated multi-account risk detection | Accounts connected through shared devices, IP addresses, payment methods, or addresses | Ring probability, operational verdict, and account attribution such as `CORE_MEMBER`, `PERIPHERAL_MEMBER`, or `INCIDENTAL_BYSTANDER` |
 
+### How the Models Work Together
+
+TrustX does not rely on a single model to make a risk decision.
+
+Each model focuses on a different type of abuse:
+
+**Account Risk → Transaction Velocity → Return Behavior → Entity Relationships**
+
+The resulting signals are combined with deterministic evidence and policy
+guardrails before TrustX produces an operational recommendation.
+
+This allows TrustX to move beyond simply asking **"Is this transaction risky?"**
+and instead answer **"Why is it risky, what is happening around it, and what
+should we do next?"**
 ---
+## Architecture
 
-## 2. Problem
+TrustX follows a multi-layer architecture that connects payment events, live risk signals, specialized ML models, and policy-based decisioning.
 
-Traditional fraud detection systems typically evaluate transactions in isolation. An isolated rule or score checks whether an individual transaction exceeds a dollar limit or originates from an unrecognized location. While useful, this approach fails to capture complex, coordinated, or time-distributed abuse patterns:
+```mermaid
+flowchart LR
 
-- **Isolated vs. Coordinated Attacks**: Fraud syndicates distribute activity across dozens of newly created or compromised accounts. When viewed individually, each account may appear low-risk. However, when analyzed in aggregate, these accounts share devices, IP subnets, or delivery destinations.
-- **Velocity and Surge Anomaly Blindness**: Rapid card testing or automated bot attacks can flood a payment gateway within minutes. Static hourly thresholds often trigger too late, missing short-duration micro-bursts that degrade authorization rates and increase merchant fees.
-- **Serial Return and Wardrobing Abuse**: Legitimate customer returns are a normal part of e-commerce. Fraudulent return abuse occurs when bad actors exploit lenient return policies by purchasing high-value items, claiming refunds, and returning counterfeit or empty packages. Treating all returns as fraud harms customer trust, while ignoring excessive return velocity leads to significant inventory loss.
-- **False Positive Overhead and Bystander Harm**: Overly aggressive graph clustering or IP-based blocking often penalizes legitimate users who happen to share public Wi-Fi networks, corporate proxies, or household devices. A robust defense system must distinguish genuine collusive networks from incidental benign sharing.
+    A["Razorpay<br/>Payment Event"] --> B["Event Gateway"]
 
----
+    B --> C["Validation &<br/>Context Extraction"]
 
-## 3. Solution
+    C --> D["Live Risk Context"]
 
-TrustX implements a multi-layered defense architecture that evaluates risk at the transaction, account, temporal, and network levels. Data flows through a unified pipeline from event ingestion to analyst decisioning:
+    D --> E1["Risk Engine"]
+    D --> E2["Fraud Spike<br/>Detector"]
+    D --> E3["Return Risk<br/>Scorer"]
+    D --> E4["Abuse Ring<br/>Sentinel"]
 
-```text
-Payment / Webhook Event
-           |
-           v
-Input Validation & Sanitization
-           |
-           v
-Feature Extraction & Entity Graph Correlation
-           |
-           +---------------------------------------------+
-           |                                             |
-           v                                             v
-Machine Learning Inference                    Deterministic Evidence & Guardrails
-(Random Forest Pipelines)                    (P1 Bursts, P3 Persistence, Bystander Protection)
-           |                                             |
-           +---------------------------------------------+
-                                   |
-                                   v
-                      Adaptive Decision Engine
-                                   |
-                                   v
-             Calibrated Risk Score & Action Directives
-             (ALLOW, MANUAL_REVIEW, CHALLENGE_OR_BLOCK)
-                                   |
-                                   v
-                        TrustX Operations Center
+    E1 --> F["Evidence &<br/>Guardrails"]
+    E2 --> F
+    E3 --> F
+    E4 --> F
+
+    F --> G["Adaptive<br/>Decision Engine"]
+
+    G --> H{"Risk Level"}
+
+    H -->|Low| I["ALLOW / MONITOR"]
+    H -->|Medium| J["REVIEW / STEP-UP"]
+    H -->|High| K["CHALLENGE / RESTRICT / BLOCK"]
+
+    I --> L["TrustX<br/>Operations Center"]
+    J --> L
+    K --> L
+
+    L --> M["Risk Explanation"]
+    L --> N["Live Telemetry"]
+    L --> O["Investigation Feed"]
 ```
-
-Key characteristics of this solution include:
-- **Zero Fabrication**: All telemetry, entity relationships, and evaluation scores derive strictly from verified event inputs and immutable store records.
-- **Multi-Engine Synthesis**: General account risk, temporal velocity surges, return abuse, and graph-level syndicates are evaluated by dedicated engines with domain-specific feature representations.
-- **Bystander Protection**: Network clustering applies deterministic discounting when connections occur over shared public infrastructure, preventing false-positive blocking of innocent users.
-
 ---
-
-## 4. Key Capabilities
-
-| Capability | Purpose | Input Signals | Primary Analysis | Output |
-| :--- | :--- | :--- | :--- | :--- |
-| **Risk Engine** | Account-level abuse scoring and transactional decisioning | 15 account features (orders, returns, refunds, spend, AOV, age, device/IP counts, categoricals) | Random Forest pipeline with missing value imputation and one-hot encoding | Risk score (0-100), risk tier (LOW, MEDIUM, HIGH), policy decision |
-| **Fraud Spike Detector** | Temporal velocity burst and surge detection | Rolling 5-minute and 1-hour window metrics versus 24-hour merchant baseline | Temporal Random Forest, P1 surge guardrails, and P3 multi-window persistence tracking | Spike probability, anomaly score, persistence flags, traffic classification |
-| **Return Risk Scorer** | Serial wardrobing and refund manipulation audit | Account return volume, refund ratios, basket values, account age | Dedicated Return Random Forest model and retail tolerance heuristics | Return risk score (0-100), risk tier, fulfillment directive (e.g. physical inspection) |
-| **Abuse Ring Sentinel** | Multi-account syndicate and collusive cluster detection | Bipartite interaction graph (accounts, devices, IPs, payment methods, addresses) | 15-feature topological extraction, calibrated Random Forest, evidence adjustments | Ring score (0.0-1.0), operational verdict, account-level attribution roles |
-
-### Risk Engine
-The central Risk Engine evaluates individual account risk profiles. It ingests order frequency, monetary value, return/refund histories, and external anomaly signals. The engine executes a serialized Scikit-Learn pipeline to generate a calibrated risk score (0 to 100). The downstream Adaptive Decision Engine maps this score and contextual indicators into concrete operational decisions: `ALLOW`, `MANUAL_REVIEW`, or `CHALLENGE_OR_BLOCK`.
-
-### Fraud Spike Detector
-The Fraud Spike Detector monitors transaction velocity and dispute rates over rolling time intervals. It compares current 5-minute and 1-hour activity against 24-hour baseline behavior. The detector employs a trained Random Forest classifier alongside deterministic guardrails:
-- **P1 Burst Guardrail**: Flags immediate short-term velocity spikes exceeding safety thresholds.
-- **P3 Persistence Tracking**: Tracks consecutive anomalous observation windows per merchant to detect sustained attacks.
-- **P5 5-Minute Telemetry**: Analyzes micro-bursts to detect automated card testing before hourly aggregates reflect the surge.
-
-### Return Risk Scorer
-The Return Risk Scorer operates specifically in the post-purchase and fulfillment domain. It isolates return and refund abuse from checkout authorization. Accounts exhibiting disproportionate return-to-order ratios, repeated refund claims on high-value basket items, and low account tenure receive specialized return directives: `ALLOW_STANDARD_RETURNS`, `FLAG_FOR_RETURN_DESK_AUDIT`, or `RESTRICT_INSTANT_REFUNDS_AND_INSPECT`.
-
-### Abuse Ring Sentinel
-The Abuse Ring Sentinel identifies coordinated multi-accounting syndicates operating across shared infrastructure. It constructs bipartite entity graphs linking accounts through hardware devices, IP addresses, payment tokens, and physical delivery addresses. Graph subgraphs are transformed into 15 topological and behavioral features evaluated by a calibrated Random Forest classifier. A deterministic evidence layer adjusts the raw model probability and classifies each account as a `CORE_MEMBER`, `PERIPHERAL_MEMBER`, or `INCIDENTAL_BYSTANDER`.
-
----
-
-## 5. How TrustX Works
-
-The end-to-end execution flow follows an eight-step lifecycle:
-
-```text
-1. Event Ingestion        --> Payment webhook or API assessment payload received
-2. Context Extraction     --> Extract account, payment, device, IP, and address tokens
-3. Validation & Quality   --> Clamp invalid ranges, impute defaults, compute data quality score
-4. Entity Graph Update    --> Correlate shared infrastructure in bipartite graph store
-5. Multi-Model Inference  --> Parallel scoring via Account, Spike, Return, and Ring engines
-6. Evidence Synthesis     --> Apply deterministic guardrails, volume adjustments, and mitigations
-7. Decisioning & Policy   --> Assign operational action (ALLOW, REVIEW, CHALLENGE, RESTRICT)
-8. Operations Audit       --> Stream structured event into TrustX Command Center with explainability
-```
-
-1. **Event Ingestion**: A payment webhook (e.g. from Razorpay Test Mode) or direct REST API payload enters the system.
-2. **Context Extraction**: The gateway parses transaction identifiers, monetary amounts, merchant identifiers, device fingerprints, client IP addresses, and shipping/billing addresses.
-3. **Validation and Quality Scoring**: Numeric inputs are validated and clamped to valid physical ranges. Missing fields receive median or neutral default imputations, and a data quality score (0.0 to 1.0) is assigned to track input completeness.
-4. **Entity Graph Correlation**: Observed device IDs, client IP connection addresses, payment tokens, and canonical address hashes are mapped into the in-memory Live Abuse Graph.
-5. **Multi-Model Inference**: Features are routed to the relevant machine learning models. The Risk Engine scores account behavior; the Fraud Spike Detector evaluates rolling velocity; the Return Risk Scorer assesses refund patterns; and the Abuse Ring Sentinel evaluates connected component topology.
-6. **Evidence Synthesis**: Deterministic rules adjust model probabilities. Mitigation factors (e.g. account age, low refund rates, single-account devices) reduce risk, while compounding risk factors (e.g. high degree centrality, velocity surges) increase it.
-7. **Decision and Policy Generation**: The Adaptive Decision Engine evaluates risk scores against configured policy rules to generate primary and secondary operational recommendations.
-8. **Operations Audit and Explainability**: The resulting assessment is logged to the in-memory event feed, linking risk drivers, natural-language reasoning, and entity attribution for analyst review.
-
----
-
-## 6. Architecture
+### 3. System Flow
 
 ```mermaid
 flowchart TD
-    subgraph ClientLayer ["Client & Ingestion Layer"]
-        UI["TrustX React Dashboard"]
-        WebhookClient["Payment Gateway Webhook (Razorpay Test Mode)"]
-        APIClient["Direct REST API Client"]
-    end
 
-    subgraph APILayer ["FastAPI Service Layer (src/api.py)"]
-        HealthRoute["/health"]
-        ScoreRoute["/risk/score"]
-        SpikeRoute["/risk/fraud-spike"]
-        RingRoute["/risk/abuse-ring"]
-        OrderRoute["/payments/create-order"]
-        WebhookRoute["/webhooks/razorpay"]
-    end
+    A["Payment / Webhook"] --> B["Validate Input"]
+    B --> C["Extract Transaction Context"]
+    C --> D["Update Live Activity & Entity Graph"]
 
-    subgraph IngestionAdapters ["Ingestion & Verification Adapters"]
-        HMACVerifier["HMAC-SHA256 Signature Verifier"]
-        IdempotencyStore["10,000-Bounded Idempotency Cache"]
-        ContextStore["PaymentContextStore (IP & Address Capture)"]
-    end
+    D --> E{"TrustX Risk Analysis"}
 
-    subgraph StateStores ["In-Memory State Stores"]
-        AccountStore["AccountStore (Historical Profiles)"]
-        TelemetryStore["LiveFraudTelemetryStore (5m / 1h Windows)"]
-        AbuseGraphStore["LiveAbuseGraphStore (Bipartite Graph)"]
-    end
+    E --> E1["Account Risk"]
+    E --> E2["Velocity & Fraud Spike"]
+    E --> E3["Return / Refund Risk"]
+    E --> E4["Abuse Ring Analysis"]
 
-    subgraph ModelEngines ["Inference Engines & Models (models/)"]
-        RiskScorerEngine["RiskScorer (risk_engine_rf.joblib)"]
-        SpikeDetectorEngine["FraudSpikeDetector (fraud_spike_model.joblib)"]
-        ReturnScorerEngine["ReturnRiskScorer (return_risk_model.joblib)"]
-        RingSentinelEngine["AbuseRingSentinel (abuse_ring_model.joblib)"]
-    end
+    E1 --> F["Combine Risk Signals"]
+    E2 --> F
+    E3 --> F
+    E4 --> F
 
-    subgraph DecisionLayer ["Policy & Decision Layer"]
-        DecisionEngine["AdaptiveDecisionEngine (Policy Rules)"]
-        AttributionEngine["AccountAttribution (Bystander Protection)"]
-        Explainer["Natural Language Explainability"]
-    end
+    F --> G["Apply Evidence & Guardrails"]
+    G --> H["Adaptive Decision Engine"]
 
-    UI --> ScoreRoute
-    UI --> SpikeRoute
-    UI --> RingRoute
-    WebhookClient --> WebhookRoute
-    APIClient --> OrderRoute
+    H --> I["Risk Score"]
+    H --> J["Explanation"]
+    H --> K["Operational Action"]
 
-    WebhookRoute --> HMACVerifier
-    HMACVerifier --> IdempotencyStore
-    IdempotencyStore --> ContextStore
-
-    OrderRoute --> ContextStore
-    ContextStore --> AbuseGraphStore
-    ContextStore --> TelemetryStore
-
-    ScoreRoute --> RiskScorerEngine
-    ScoreRoute --> ReturnScorerEngine
-    SpikeRoute --> SpikeDetectorEngine
-    RingRoute --> RingSentinelEngine
-
-    TelemetryStore --> SpikeDetectorEngine
-    AbuseGraphStore --> RingSentinelEngine
-    AccountStore --> RiskScorerEngine
-
-    RiskScorerEngine --> DecisionEngine
-    ReturnScorerEngine --> DecisionEngine
-    SpikeDetectorEngine --> DecisionEngine
-    RingSentinelEngine --> AttributionEngine
-
-    DecisionEngine --> Explainer
-    AttributionEngine --> Explainer
-    Explainer --> UI
+    I --> L["TrustX Operations Center"]
+    J --> L
+    K --> L
 ```
+
+### Architecture Components
+
+| Component | Responsibility |
+|---|---|
+| **Event Gateway** | Receives Razorpay webhook and API events. |
+| **Live Risk Context** | Maintains transaction, account, device, IP, address, payment, and velocity signals. |
+| **Risk Intelligence Layer** | Runs the four specialized TrustX risk models. |
+| **Evidence & Guardrails** | Combines model outputs with deterministic evidence and protection rules. |
+| **Adaptive Decision Engine** | Converts the combined risk signals into an operational action. |
+| **Operations Center** | Presents risk scores, explanations, telemetry, and investigation results. |
+---
+## 4. Key capabilities
+
+| Feature | Description |
+|---|---|
+| **Risk Engine** | Scores account and transaction risk using behavioral and payment signals. |
+| **Fraud Spike Detector** | Detects sudden transaction-volume and suspicious-activity surges using live 5-minute and 1-hour telemetry. |
+| **Return Risk Scorer** | Identifies suspicious return and refund patterns without affecting normal checkout decisions. |
+| **Abuse Ring Sentinel** | Detects coordinated activity across accounts, devices, IPs, payment methods, and addresses. |
+| **Razorpay Webhook Integration** | Receives and verifies Razorpay payment events with signature validation and duplicate-event protection. |
+| **Live Risk Operations** | Provides real-time risk scores, explanations, alerts, telemetry, and investigation workflows through the dashboard. |
+---
+
+## Tech Stack
+
+<table>
+<tr>
+<td width="33%" valign="top">
+
+### Frontend
+
+- React
+- TypeScript
+- Vite
+- Vanilla CSS
+- React Router
+
+</td>
+
+<td width="33%" valign="top">
+
+### Backend
+
+- Python
+- FastAPI
+- Uvicorn
+- Pydantic
+- HTTPX
+
+</td>
+
+<td width="33%" valign="top">
+
+### Machine Learning
+
+- Scikit-learn
+- NumPy
+- Pandas
+- Joblib
+- Random Forest
+
+</td>
+</tr>
+
+<tr>
+<td width="33%" valign="top">
+
+### Payment Integration
+
+- Razorpay Webhooks
+- HMAC-SHA256
+- Webhook Signature Verification
+- Event Idempotency
+
+</td>
+
+<td width="33%" valign="top">
+
+### Data & Risk Analysis
+
+- Behavioral Features
+- Temporal Telemetry
+- Entity Graphs
+- Risk Scoring
+- Deterministic Guardrails
+
+</td>
+
+<td width="33%" valign="top">
+
+### Testing
+
+- Pytest
+- API Tests
+- Model Tests
+- Risk Engine Tests
+- Webhook Tests
+
+</td>
+</tr>
+</table>
 
 ---
 
