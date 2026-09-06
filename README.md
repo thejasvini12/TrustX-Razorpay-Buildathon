@@ -28,7 +28,7 @@ Track 02 — AI Risk Manager · Razorpay Buildathon 2026
 </div>
 
 ---
-## Overview
+## 1. Overview
 
 TrustX is an AI-powered transaction risk intelligence platform designed to
 detect and investigate suspicious payment and merchant-abuse activity in real
@@ -39,7 +39,7 @@ account behavior, transaction history, payment activity, temporal velocity,
 device and IP relationships, payment instruments, addresses, and return/refund
 patterns to build a broader view of risk.
 
-### Features
+### 2. Features
 
 | Model | Purpose | What It Detects | Output |
 |---|---|---|---|
@@ -63,7 +63,7 @@ This allows TrustX to move beyond simply asking **"Is this transaction risky?"**
 and instead answer **"Why is it risky, what is happening around it, and what
 should we do next?"**
 ---
-## Architecture
+## 3. Architecture
 
 TrustX follows a multi-layer architecture that connects payment events, live risk signals, specialized ML models, and policy-based decisioning.
 
@@ -103,7 +103,7 @@ flowchart LR
     L --> O["Investigation Feed"]
 ```
 ---
-### 3. System Flow
+### 4. System Flow
 
 ```mermaid
 flowchart TD
@@ -147,100 +147,8 @@ flowchart TD
 | **Adaptive Decision Engine** | Converts the combined risk signals into an operational action. |
 | **Operations Center** | Presents risk scores, explanations, telemetry, and investigation results. |
 ---
-## 4. Key capabilities
 
-| Feature | Description |
-|---|---|
-| **Risk Engine** | Scores account and transaction risk using behavioral and payment signals. |
-| **Fraud Spike Detector** | Detects sudden transaction-volume and suspicious-activity surges using live 5-minute and 1-hour telemetry. |
-| **Return Risk Scorer** | Identifies suspicious return and refund patterns without affecting normal checkout decisions. |
-| **Abuse Ring Sentinel** | Detects coordinated activity across accounts, devices, IPs, payment methods, and addresses. |
-| **Razorpay Webhook Integration** | Receives and verifies Razorpay payment events with signature validation and duplicate-event protection. |
-| **Live Risk Operations** | Provides real-time risk scores, explanations, alerts, telemetry, and investigation workflows through the dashboard. |
----
-
-## Tech Stack
-
-<table>
-<tr>
-<td width="33%" valign="top">
-
-### Frontend
-
-- React
-- TypeScript
-- Vite
-- Vanilla CSS
-- React Router
-
-</td>
-
-<td width="33%" valign="top">
-
-### Backend
-
-- Python
-- FastAPI
-- Uvicorn
-- Pydantic
-- HTTPX
-
-</td>
-
-<td width="33%" valign="top">
-
-### Machine Learning
-
-- Scikit-learn
-- NumPy
-- Pandas
-- Joblib
-- Random Forest
-
-</td>
-</tr>
-
-<tr>
-<td width="33%" valign="top">
-
-### Payment Integration
-
-- Razorpay Webhooks
-- HMAC-SHA256
-- Webhook Signature Verification
-- Event Idempotency
-
-</td>
-
-<td width="33%" valign="top">
-
-### Data & Risk Analysis
-
-- Behavioral Features
-- Temporal Telemetry
-- Entity Graphs
-- Risk Scoring
-- Deterministic Guardrails
-
-</td>
-
-<td width="33%" valign="top">
-
-### Testing
-
-- Pytest
-- API Tests
-- Model Tests
-- Risk Engine Tests
-- Webhook Tests
-
-</td>
-</tr>
-</table>
-
----
-
-## 7. Machine Learning Models
+## 5. Machine Learning Models
 
 TrustX maintains four specialized machine learning models serialized in the `models/` directory. Each model addresses a specific operational risk domain:
 
@@ -253,7 +161,7 @@ TrustX maintains four specialized machine learning models serialized in the `mod
 
 ---
 
-## 8. Machine Learning Pipeline
+## 6. Machine Learning Pipeline
 
 The machine learning lifecycle in TrustX follows a strict, reproducible sequence from data generation to runtime inference:
 
@@ -281,17 +189,9 @@ Artifact Serialization
 Runtime Pre-Loading & Inference
 (FastAPI lifespan pre-loads all models at startup)
 ```
-
-1. **Data Generation**: Training datasets are synthesized deterministically using controlled seeds (seed=42) in `src/data_generator.py`, `src/temporal_data_generator.py`, and `src/abuse_ring_data_generator.py`. These generators simulate normal shopping behavior, high-return wardrobing patterns, velocity spikes, and complex multi-entity graph sharing topologies.
-2. **Preprocessing and Feature Engineering**: Categorical variables (`device_type`, `primary_payment_method`) are encoded via `OneHotEncoder(handle_unknown="ignore")`. Numeric values are imputed via `SimpleImputer(strategy="median")`. Pipeline definitions ensure that transformations applied during training are identical to those executed during live inference.
-3. **Model Training and Calibration**: Classifiers are trained using balanced subsampling to address minority fraud prevalence. The Abuse Ring Sentinel model wraps Random Forest estimators inside `CalibratedClassifierCV` using 5-fold cross-validation to produce well-calibrated posterior probabilities.
-4. **Validation and Testing**: Models are evaluated on held-out test sets (typically 15% to 20% of data). Metrics recorded in metadata files include Precision, Recall, F1-Score, ROC-AUC, and full confusion matrices.
-5. **Model Serialization**: Trained pipelines are persisted in `models/` as `.joblib` files alongside companion `.json` metadata files documenting hyperparameters, feature lists, and evaluation metrics.
-6. **Inference Execution**: On application startup, FastAPI's `lifespan` handler pre-loads all model artifacts into memory as singletons, avoiding per-request disk I/O and cold-start latency.
-
 ---
 
-## 9. Risk Scoring and Decisioning
+## 7. Risk Scoring and Decisioning
 
 ### Risk Score Calculation
 Account risk scores map raw model probabilities to an intuitive 0 to 100 integer scale:
@@ -332,85 +232,7 @@ Score & Feature Evaluation
 
 ---
 
-## 10. Abuse Ring Detection
-
-An abuse ring represents multiple accounts acting in coordination, sharing infrastructure to commit fraud, exploit voucher promotions, or evade account bans.
-
-### Entity Relationships
-The `LiveAbuseGraphStore` in `src/live_abuse_graph.py` models entity interactions as an undirected bipartite graph $G = (V, E)$, where accounts connect exclusively to entity tokens:
-- **DEVICE**: Normalized hardware fingerprints.
-- **IP**: Client connection IP addresses, validated against internal private range filters and hashed for privacy.
-- **PAYMENT**: Payment instrument tokens (e.g. payment IDs or card fingerprints).
-- **ADDRESS**: Physical delivery or billing addresses, normalized and hashed using salted SHA-256 (`addr_<hash>`).
-
-```text
-[Account 1] ──── (DEVICE: dev_mobile_01) ──── [Account 2]
-     |                                             |
-     └── (IP: ip_198_51_100) ──────────────────────┘
-     |
-     └── (ADDRESS: addr_a1b2c3d4) ──────────── [Account 3]
-```
-
-### Cluster Analysis and Scoring
-Connected components within the bipartite graph are extracted as candidate clusters. The sentinel evaluates cluster topology across 15 features:
-1. Raw calibrated ML probability from `abuse_ring_model.joblib`.
-2. Deterministic evidence adjustments:
-   - Compounding signals (+0.15 max): high edge density, multi-token sharing across devices and IPs.
-   - Mitigating signals (-0.30 max): single-account entities, low overall graph density.
-3. Operational verdict assignment: `NO_RING`, `POSSIBLE_RING`, `LIKELY_RING`, `HIGH_CONFIDENCE_RING`.
-
-### Account-Level Attribution and Bystander Protection
-To prevent punishing innocent users who share public infrastructure (e.g. university Wi-Fi or coffee shop devices), the Sentinel computes individual account roles within each cluster:
-- **CORE_MEMBER**: High degree centrality, connects multiple shared tokens, exhibits elevated individual suspicious scores. Action: `BLOCK` or `RESTRICT`.
-- **PERIPHERAL_MEMBER**: Moderate connectivity, shares at least one token with core members. Action: `REVIEW` or `STEP_UP_AUTH`.
-- **INCIDENTAL_BYSTANDER**: Connects via a single high-volume entity (e.g. shared IP) but exhibits low individual risk scores and standard shopping behavior. Action: Protected from automated restriction; evaluated as `MONITOR` or `NO_ACTION`.
-
----
-
-## 11. Fraud Spike Detection
-
-The Fraud Spike Detector in `src/fraud_spike_detector.py` identifies sudden temporal surges in fraudulent transaction volume across merchant traffic.
-
-### Data Analyzed
-The system maintains rolling statistical windows per merchant:
-- **Baseline Window**: 24-hour historical baseline representing normal transaction frequency and dispute rates.
-- **Current Observation Window**: Latest 1-hour activity window.
-- **Sub-Window Telemetry**: 12 consecutive 5-minute observation slices per merchant.
-
-### Metrics Evaluated
-1. `volume_surge_ratio`: Ratio of current transaction rate to baseline rate.
-2. `fraud_rate_delta` and `fraud_rate_ratio`: Absolute and proportional increases in flagged or disputed transactions.
-3. `device_concentration_ratio`: Ratio of unique transactions to unique devices in the active window (detects bot automation).
-4. `suspicious_score_delta`: Shift in external risk indicators across the observation boundary.
-
-### Guardrails
-- **P1 Burst Protection**: If a 5-minute sub-window exhibits extreme volume surge combined with high suspicious activity, an emergency surge alert triggers without waiting for the full 1-hour window to close.
-- **P3 Multi-Window Persistence**: Tracks consecutive elevated windows. If a merchant experiences three consecutive `MEDIUM` anomaly windows, the state escalates to `HIGH` persistence status.
-
----
-
-## 12. Return Risk
-
-Return and refund abuse (often termed serial wardrobing) occurs when users exploit return guarantees without purchasing with legitimate intent.
-
-### Features Evaluated
-The Return Risk Scorer evaluates specialized behavioral signals:
-- `return_rate` ($returns / orders$) and `refund_rate` ($refunds / orders$).
-- `return_count` and `refund_count`.
-- `high_value_order_count` combined with `average_order_value`.
-- `account_age_days` (distinguishing seasoned accounts from newly registered return abusers).
-
-### Operational Separation
-Return risk decisions operate strictly in the post-purchase and fulfillment domain:
-- They do **not** decline checkouts or block account logins.
-- They assign specific fulfillment safeguards:
-  - `ALLOW_STANDARD_RETURNS`: Customer receives standard self-service return labels and instant refunds.
-  - `FLAG_FOR_RETURN_DESK_AUDIT`: Customer return packages must be audited at the warehouse before store credit is issued.
-  - `RESTRICT_INSTANT_REFUNDS_AND_INSPECT`: Instant refunds are revoked; physical inspection of item authenticity and serial number matching is required.
-
----
-
-## 13. API and Webhook Integration
+## 8. API and Webhook Integration
 
 TrustX provides a comprehensive REST API implemented with FastAPI, including native support for Razorpay Test Mode webhook ingestion.
 
@@ -436,41 +258,41 @@ TrustX provides a comprehensive REST API implemented with FastAPI, including nat
 | `GET` | `/webhooks/razorpay/status` | Operational status of Razorpay webhook adapter |
 | `GET` | `/webhooks/razorpay/events` | Stream recent risk events derived from webhooks |
 
-### Webhook Verification and Ingestion Flow
-1. **Signature Verification**: Incoming requests to `POST /webhooks/razorpay` must supply the `X-Razorpay-Signature` header. The system computes a constant-time HMAC-SHA256 digest over the raw request body bytes using `RAZORPAY_WEBHOOK_SECRET`.
-2. **Idempotency Guard**: Event IDs are verified against a thread-safe `OrderedDict` bounded to 10,000 entries. Duplicate event IDs return HTTP 200 immediately without reprocessing.
-3. **Canonical Event Lifecycle**:
-   - `payment.authorized`: Safe non-canonical state. Increments telemetry intake without finalizing monetary capture.
-   - `payment.captured`: Canonical payment success. Increments payment volume, associates entity tokens, and updates live telemetry.
-   - `payment.failed`: Records failed payment attempt. Evaluated under the strict rule that payment failure alone does not equal fraud (e.g. insufficient funds or customer error).
-4. **Context Correlation**: The webhook manager correlates incoming payments with short-lived checkout contexts initiated via `/payments/create-order`, binding application-observed client IPs and hashed addresses to the verified payment.
+### 8.a Razorpay Webhook Setup
 
-### Environment Configuration
-The application reads configuration from environment variables or a local `.env` file:
-```ini
+### 1. Enable Test Mode
+
+In Razorpay Dashboard, switch to **Test Mode**.
+
+Go to:
+
+**Account & Settings → Webhooks → Add New Webhook**
+
+### 2. Add TrustX Webhook
+
+| Setting | Value |
+|---|---|
+| Webhook URL | `https://trustx-backend.onrender.com/webhooks/razorpay` |
+| Secret | Your own webhook secret |
+| Mode | Test Mode |
+
+Enable these events:
+
+- `payment.authorized`
+- `payment.captured`
+- `payment.failed`
+
+### 3. Add Environment Variables
+
+```env
 RAZORPAY_KEY_ID=rzp_test_...
 RAZORPAY_KEY_SECRET=...
-RAZORPAY_WEBHOOK_SECRET=...
-RAZORPAY_DEFAULT_MERCHANT_ID=MERCH_RAZORPAY_TEST
-TRUSTED_PROXY_COUNT=0
+RAZORPAY_WEBHOOK_SECRET=your_webhook_secret
 ```
 
 ---
 
-## 14. Dashboard / Frontend
-
-The TrustX frontend is a single-page application built with React 18, TypeScript, and Vite. It connects to the FastAPI backend to provide interactive risk investigation:
-
-- **Executive Command Center (`/`)**: High-level operational view displaying real-time system status, overall threat posture, active case counts, Razorpay webhook intake status, and the prioritized case queue.
-- **Risk Operations Feed (`/risk-operations`)**: Live, filterable audit log streaming real-time assessments from webhook intake, manual assessments, and attack simulations. Includes an investigation drawer detailing raw feature payloads, evidence signals, and operator workflow controls (`OPEN`, `INVESTIGATING`, `RESOLVED`).
-- **Account Risk Hub (`/account-risk`)**: Deep-dive account investigation view with account lookup, preset scenario loading, interactive attribute testing, dual-layer explainability, and policy directives.
-- **Fraud Spike Radar (`/fraud-spike` and `/fraud-spike/result`)**: Live radar dashboard monitoring rolling 5-minute micro-bursts and 1-hour velocity telemetry, displaying surge ratios and P1/P3 guardrail statuses.
-- **Abuse Ring Explorer (`/abuse-ring` and `/abuse-ring/result`)**: Graph visualization displaying bipartite relationships between accounts, hardware devices, IP addresses, payment cards, and physical addresses. Highlights core syndicate members versus protected bystanders.
-- **Attack Simulator Studio (`/simulator`)**: Controlled evaluation studio for injecting synthetic attack scenarios (e.g. Distributed Device Ring, Rapid Velocity Surge, Serial Wardrobing Abuser) to validate multi-engine detection behavior against clean baselines.
-
----
-
-## 15. Technology Stack
+## 9. Technology Stack
 
 | Layer | Technology | Version / Specification | Purpose |
 | :--- | :--- | :--- | :--- |
@@ -491,7 +313,7 @@ The TrustX frontend is a single-page application built with React 18, TypeScript
 
 ---
 
-## 16. Project Structure
+## 10. Project Structure
 
 ```text
 TrustX-Razorpay-Buildathon/
@@ -584,54 +406,121 @@ TrustX-Razorpay-Buildathon/
 
 ---
 
-## 17. Getting Started
+## 11. Getting Started
 
 ### Prerequisites
+
 - Python 3.10 or higher
 - Node.js 18 or higher and npm
 
-### Backend Setup
-1. Create and activate a Python virtual environment:
+### 11.a Backend Setup
+
+1. Create and activate a virtual environment:
+
    ```bash
    python -m venv venv
-   # On Windows:
+   ```
+
+   **Windows:**
+   ```bash
    .\venv\Scripts\activate
-   # On macOS/Linux:
+   ```
+
+   **macOS/Linux:**
+   ```bash
    source venv/bin/activate
    ```
-2. Install Python dependencies:
+
+2. Install dependencies:
+
    ```bash
    pip install -r requirements.txt
    ```
-3. (Optional) Configure environment variables:
+
+3. Configure environment variables:
+
    ```bash
    cp .env.example .env
    ```
-4. Start the FastAPI backend server:
+
+4. Start the FastAPI backend:
+
    ```bash
    uvicorn src.api:app --host 127.0.0.1 --port 8000 --reload
    ```
-   The interactive API documentation is available at `http://127.0.0.1:8000/docs`.
 
-### Frontend Setup
-1. Navigate to the frontend directory and install dependencies:
+   API documentation: `http://127.0.0.1:8000/docs`
+
+   The Razorpay webhook endpoint is available at:
+   `POST /webhooks/razorpay`
+
+### 11.b Frontend Setup
+
+1. Install frontend dependencies:
+
    ```bash
    cd frontend
    npm install
    ```
+
 2. Start the development server:
+
    ```bash
    npm run dev
    ```
+
    Open `http://localhost:5173` in your browser.
 
-3. To create a production bundle:
+3. Build for production:
+
    ```bash
    npm run build
    ```
 
+### 11.c Razorpay Webhook Testing
+
+For the deployed TrustX backend, no separate webhook command is required. Razorpay sends events directly to:
+
+`https://trustx-backend.onrender.com/webhooks/razorpay`
+
+For local testing, the FastAPI server must remain running and the local webhook endpoint must be exposed through a public HTTPS tunnel.
+
 ### Running Tests
-Execute the complete backend test suite:
+
 ```bash
 pytest tests -v
 ```
+---
+
+## 12. Future Enhancements
+
+1. **Automatic Blocking of High-Risk Accounts**  
+   Automatically block or temporarily restrict accounts when TrustX detects extremely suspicious activity, instead of only flagging them for review.
+
+2. **Real-Time Event Streaming**  
+   Add Kafka or a similar event-streaming system so TrustX can process large volumes of payment activity continuously and in real time.
+
+3. **Smarter Abuse Ring Detection**  
+   Improve the Abuse Ring Sentinel to discover larger and more complex fraud networks as new accounts, devices, IPs, and payment methods appear.
+
+4. **Continuous Model Learning**  
+   Periodically retrain the risk models using new transaction patterns so TrustX can adapt to changing fraud and abuse behaviour.
+
+5. **Investigation Case Management**  
+   Allow risk teams to create cases from suspicious activity, assign them to analysts, add investigation notes, and record the final decision.
+
+7. **Production-Scale Infrastructure**  
+   Improve scalability, monitoring, caching, and fault tolerance so TrustX can reliably handle much larger transaction volumes.
+
+---
+
+## 13. Author
+
+### Thejasvini Gangaiah
+
+AI/ML & Software Developer
+
+Built **TrustX** for the **Razorpay Buildathon 2026 — Track 02: AI Risk Manager**.
+
+---
+
